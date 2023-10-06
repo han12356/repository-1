@@ -1,0 +1,49 @@
+import chromadb
+import nltk
+import os
+import ssl
+import requests
+import gzip
+from io import BytesIO
+
+nltk_data_path = os.path.join(os.path.expanduser("~"), "nltk_data")
+nltk.data.path.append(nltk_data_path)
+print("NLTK 데이터 경로:", nltk_data_path)
+
+chroma_client = chromadb.Client()
+
+collection = chroma_client.create_collection(name="library_collection")
+
+with open("school.txt", "r", encoding="utf-8") as file:
+    text = file.read()
+
+from nltk.corpus import stopwords
+
+stop_words = set(stopwords.words("korean"))
+
+words = text.lower().split()
+
+filtered_words = [word for word in words if word not in stop_words]
+
+filtered_text = " ".join(filtered_words)
+
+collection.add(
+    documents=[filtered_text],
+    metadatas=[{"source": "school.txt"}],
+    ids=["library_document"]
+)
+
+query_texts = ["교육"]
+results = collection.query(query_texts=query_texts, n_results=5)
+
+for result in results:
+    if isinstance(result, dict):
+        doc_id = result.get("id", "N/A")
+        score = result.get("score", "N/A")
+        document_text = result.get("document_text", "N/A")  # 검색 결과의 문서 텍스트를 가져옴
+        print("문서 ID:", doc_id)
+        print("유사도:", score)
+        print("검색 결과:", document_text)  # 검색 결과의 문서 텍스트 출력
+        print()
+    else:
+        print("결과가 잘못 반환되었습니다.")
